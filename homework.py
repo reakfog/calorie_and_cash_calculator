@@ -1,6 +1,6 @@
 import datetime as dt
+import sys
 date_format = '%d.%m.%Y'
-today_date = dt.datetime.now().date()
 
 
 class Record:
@@ -8,7 +8,7 @@ class Record:
         self.amount = amount
         self.comment = comment
         if date is None:
-            self.date = today_date
+            self.date = dt.datetime.now().date()
         else:
             self.date = dt.datetime.strptime(date, date_format).date()
 
@@ -22,14 +22,12 @@ class Calculator:
         self.records.append(record)
 
     def get_today_stats(self):
-        total_amount = 0
-        for element in self.records:
-            if element.date == today_date:
-                total_amount += element.amount
-        result = round(total_amount, 2)
+        result = sum(element.amount for element in self.records
+                     if element.date == dt.datetime.now().date())
         return result
 
     def get_week_stats(self):
+        today_date = dt.datetime.now().date()
         total_amount = 0
         date_week_ago = today_date - dt.timedelta(days=6)
         for element in self.records:
@@ -47,17 +45,17 @@ class CashCalculator(Calculator):
         currency_rates = {'usd': [CashCalculator.USD_RATE, 'USD'],
                           'eur': [CashCalculator.EURO_RATE, 'Euro'],
                           'rub': [float(1), 'руб']}
-        currency_name = currency_rates[currency][1]
-        currency_rate = currency_rates[currency][0]
-        cash_remained = round(abs(self.limit - total_amount) /
-                              currency_rate, 2)
+        if currency not in currency_rates:
+            sys.exit('Валюта не найдена')
+        currency_rate, currency_name = currency_rates[currency]
+        cash_remained = abs(self.limit - total_amount) / currency_rate
+        cash_to_string = '{0:.2f} {1}'.format(cash_remained, currency_name)
         if self.limit - total_amount > 0:
-            result = f'На сегодня осталось {cash_remained} {currency_name}'
+            result = f'На сегодня осталось {cash_to_string}'
         elif self.limit - total_amount == 0:
             result = 'Денег нет, держись'
         elif self.limit - total_amount < 0:
-            result = (f'Денег нет, держись: твой долг - '
-                      f'{cash_remained} {currency_name}')
+            result = f'Денег нет, держись: твой долг - {cash_to_string}'
         return result
 
 
@@ -84,6 +82,7 @@ if __name__ == '__main__':
     print(cash_calculator.get_today_cash_remained('rub'))
     print(cash_calculator.get_today_cash_remained('usd'))
     print(cash_calculator.get_today_cash_remained('eur'))
+    print(cash_calculator.get_today_cash_remained('test'))
     print(cash_calculator.get_week_stats())
 
     calories_calculator = CaloriesCalculator(3000)
